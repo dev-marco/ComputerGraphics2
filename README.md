@@ -1,1 +1,1 @@
-# ComputerGraphics2
+# Computer Graphics Boids
