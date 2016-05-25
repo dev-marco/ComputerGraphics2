@@ -1,8 +1,69 @@
 #include <string>
 #include <iostream>
+#include "engine/mesh.h"
 #include "engine/window.h"
 
 #define WINDOW_FPS 60
+
+
+void recursiveTriangle(
+    const std::valarray<double> &a,
+    const std::valarray<double> &b,
+    const std::valarray<double> &c,
+    const double radius,
+    const unsigned steps) {
+    if (steps <= 0) {
+        glNormal3d(a[0], a[1], a[2]);
+        glVertex3d(a[0] * radius, a[1] * radius, a[2] * radius);
+
+        glNormal3d(b[0], b[1], b[2]);
+        glVertex3d(b[0] * radius, b[1] * radius, b[2] * radius);
+
+        glNormal3d(c[0], c[1], c[2]);
+        glVertex3d(c[0] * radius, c[1] * radius, c[2] * radius);
+    } else {
+        const unsigned next_step = steps - 1;
+        const std::valarray<double>
+            ab = Engine::Mesh::unit((a + b) * 0.5),
+            ac = Engine::Mesh::unit((a + c) * 0.5),
+            bc = Engine::Mesh::unit((b + c) * 0.5);
+
+        recursiveTriangle( a, ab, ac, radius, next_step);
+        recursiveTriangle( b, bc, ab, radius, next_step);
+        recursiveTriangle( c, ac, bc, radius, next_step);
+        recursiveTriangle(ab, bc, ac, radius, next_step);
+    }
+}
+void drawsphere(unsigned steps, const std::valarray<double> &center = { 0.0, 0.0, 0.0 }, const double radius = 1.0) {
+    constexpr double
+        X = 0.525731112119133606,
+        Z = 0.850650808352039932;
+
+    static const std::valarray<double> vdata[12] = {
+        {  -X, 0.0,   Z }, {   X, 0.0,   Z }, {  -X, 0.0,  -Z }, {   X, 0.0,  -Z },
+        { 0.0,   Z,   X }, { 0.0,   Z,  -X }, { 0.0,  -Z,   X }, { 0.0,  -Z,  -X },
+        {   Z,   X, 0.0 }, {  -Z,   X, 0.0 }, {   Z,  -X, 0.0 }, {  -Z,  -X, 0.0 }
+    };
+
+    constexpr unsigned tindices[20][3] = {
+        { 0,  4,  1 }, { 0, 9,  4 }, { 9,  5, 4 }, {  4, 5, 8 }, { 4, 8,  1 },
+        { 8, 10,  1 }, { 8, 3, 10 }, { 5,  3, 8 }, {  5, 2, 3 }, { 2, 7,  3 },
+        { 7, 10,  3 }, { 7, 6, 10 }, { 7, 11, 6 }, { 11, 0, 6 }, { 0, 1,  6 },
+        { 6,  1, 10 }, { 9, 0, 11 }, { 9, 11, 2 }, {  9, 2, 5 }, { 7, 2, 11 }
+    };
+
+    glPushMatrix();
+    glTranslated(center[0], center[1], center[2]);
+    glBegin(GL_TRIANGLES);
+
+    for (const auto &indices : tindices) {
+        recursiveTriangle(vdata[indices[0]], vdata[indices[1]], vdata[indices[2]], radius, steps);
+    }
+
+    glEnd();
+    glPopMatrix();
+
+}
 
 int main (int argc, const char *argv[]) {
 
@@ -23,11 +84,6 @@ int main (int argc, const char *argv[]) {
 
         glewInit();
 
-        std::cout << std::string((char *) glGetString(GL_VERSION)) << std::endl;
-        std::cout << "BLABALBALBLA" << std::endl;
-
-        return 0;
-
         glShadeModel(GL_SMOOTH);
 
         glEnable(GL_BLEND);
@@ -39,8 +95,12 @@ int main (int argc, const char *argv[]) {
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 0.0);
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.0, 0.0, 0.0, 1.0);
 
+        auto obj = new Engine::Object({ 0.0, -4.0, 0.0 }, { 0.0, 0.0, 0.0, 1.0 }, true, new Engine::Rectangle2D({ 0.0, 0.0, 0.0 }, 1.0, 1.0), nullptr, new Engine::BackgroundColor(Engine::Color::rgba(255, 255, 255, 1.0)));
+        window.addObject(obj);
+
+        double init_time = glfwGetTime();
         while (!window.shouldClose()) {
             int width, height;
 
@@ -54,12 +114,14 @@ int main (int argc, const char *argv[]) {
 
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
-            glTranslated(0.0, 0.0, -5.0);
+            gluLookAt(0.0, 0.0, -5.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_ACCUM_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-            glColor3f(0.0f, 0.0f, 0.0f);
-            glRectf(-0.75f,0.75f, 0.75f, -0.75f);
+            obj->setOrientation(Engine::Mesh::quat({ 1.0, 5.0, 2.0 }, glfwGetTime() - init_time));
+
+            glColor4d(1.0, 1.0, 1.0, 0.5);
+            drawsphere(3, { 0.0, 0.0, 0.0 }, 2.0);
 
             window.draw();
             window.update();
@@ -69,10 +131,10 @@ int main (int argc, const char *argv[]) {
 
             glfwPollEvents();
 
-            // unsigned fps = window.sync(WINDOW_FPS);
-            // if (fps != WINDOW_FPS) {
-            //     std::cout << fps << " FPS" << std::endl;
-            // }
+            unsigned fps = window.sync(WINDOW_FPS);
+            if (fps != WINDOW_FPS) {
+                std::cout << fps << " FPS" << std::endl;
+            }
         }
 
         window.update();
