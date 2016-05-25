@@ -97,7 +97,15 @@ int main (int argc, const char *argv[]) {
 
         glClearColor(0.0, 0.0, 0.0, 1.0);
 
-        auto obj = new Engine::Object({ 0.0, -4.0, 0.0 }, { 0.0, 0.0, 0.0, 1.0 }, true, new Engine::Rectangle2D({ 0.0, 0.0, 0.0 }, 1.0, 1.0), nullptr, new Engine::BackgroundColor(Engine::Color::rgba(255, 255, 255, 1.0)));
+        auto obj = new Engine::Object(
+            { 0.0, -4.0, 0.0 },
+            Engine::Mesh::quaternionIdentity,
+            true,
+            new Engine::Sphere2D(Engine::Mesh::zero, 2.0),
+            nullptr,
+            new Engine::BackgroundColor(Engine::Color::rgba(255, 255, 255, 1.0))
+        );
+
         window.addObject(obj);
 
         double init_time = glfwGetTime();
@@ -114,11 +122,11 @@ int main (int argc, const char *argv[]) {
 
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
-            gluLookAt(0.0, 0.0, -5.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0);
+            gluLookAt(0.0, 0.0, -5.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_ACCUM_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-            obj->setOrientation(Engine::Mesh::quat({ 1.0, 5.0, 2.0 }, glfwGetTime() - init_time));
+            obj->setOrientation(Engine::Mesh::axis2quat({ 0.0, 1.0, 0.0 }, glfwGetTime() - init_time));
 
             glColor4d(1.0, 1.0, 1.0, 0.5);
             drawsphere(3, { 0.0, 0.0, 0.0 }, 2.0);
