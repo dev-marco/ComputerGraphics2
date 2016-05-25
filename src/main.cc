@@ -95,20 +95,6 @@ int main (int argc, const char *argv[]) {
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER, 0.0);
 
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-
-        auto obj = new Engine::Object(
-            { 0.0, -4.0, 0.0 },
-            Engine::Mesh::quaternionIdentity,
-            true,
-            new Engine::Sphere2D(Engine::Mesh::zero, 2.0),
-            nullptr,
-            new Engine::BackgroundColor(Engine::Color::rgba(255, 255, 255, 1.0))
-        );
-
-        window.addObject(obj);
-
-        double init_time = glfwGetTime();
         while (!window.shouldClose()) {
             int width, height;
 
@@ -126,9 +112,77 @@ int main (int argc, const char *argv[]) {
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_ACCUM_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-            obj->setOrientation(Engine::Mesh::axis2quat({ 0.0, 1.0, 0.0 }, glfwGetTime() - init_time));
 
-            glColor4d(1.0, 1.0, 1.0, 0.5);
+
+            float
+                light_time = glfwGetTime(),
+                light_distance = 5.0;
+            std::valarray<GLfloat> light_position = { light_distance * std::cos(light_time), light_distance * std::sin(light_time), -2.5f, 1.0f };
+
+            glEnable(GL_LIGHTING);
+            glEnable(GL_LIGHT0);
+            glEnable(GL_NORMALIZE);
+
+            // Light model parameters:
+            // -------------------------------------------
+
+            GLfloat lmKa[] = { 0.0, 0.0, 0.0, 0.0 };
+            glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmKa);
+
+            glLightModelf(GL_LIGHT_MODEL_LOCAL_VIEWER, 1.0);
+            glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 0.0);
+
+            // -------------------------------------------
+            // Spotlight Attenuation
+
+            GLfloat spot_direction[] = { -light_position[0], -light_position[1], -light_position[2] };
+            GLfloat spot_exponent = 0.0;
+            GLfloat spot_cutoff = 90.0;
+
+            glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, spot_direction);
+            glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, spot_exponent);
+            glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, spot_cutoff);
+
+            GLfloat constant_attenuation = 1.0;
+            GLfloat linear_attenuation = 0.0;
+            GLfloat quadratic_attenuation = 1.0;
+
+            glLightf(GL_LIGHT0, GL_CONSTANT_ATTENUATION, constant_attenuation);
+            glLightf(GL_LIGHT0, GL_LINEAR_ATTENUATION, linear_attenuation);
+            glLightf(GL_LIGHT0, GL_QUADRATIC_ATTENUATION, quadratic_attenuation);
+
+
+            // -------------------------------------------
+            // Lighting parameters:
+
+            GLfloat light_pos[] = { light_position[0], light_position[1], light_position[2], light_position[3] };
+            GLfloat light_ambient[] =  { 0.0, 0.0, 0.0, 1.0 };
+            GLfloat light_diffuse[] =  { 1.0, 1.0, 1.0, 1.0 };
+            GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+
+            glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+            glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+            glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+
+            // -------------------------------------------
+            // Material parameters:
+
+            // GLfloat material_ambient[] = {0.5f, 0.0f, 0.0f, 1.0f};
+            // GLfloat material_diffuse[] = {0.4f, 0.4f, 0.5f, 1.0f};
+            // GLfloat material_specular[] = {0.8f, 0.8f, 0.0f, 1.0f};
+            // GLfloat material_emission[] = {0.1f, 0.0f, 0.0f, 0.0f};
+            // GLfloat material_shininess = 20.0f;
+            //
+            // glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_ambient);
+            // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_diffuse);
+            // glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material_specular);
+            // glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, material_emission);
+            // glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material_shininess);
+
+
+
+            glColor4d(0.5, 0.5, 0.5, 1.0);
             drawsphere(3, { 0.0, 0.0, 0.0 }, 2.0);
 
             window.draw();
