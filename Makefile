@@ -1,10 +1,10 @@
 # Parametros alteraveis
 
 CXX = c++
-CXXFLAGS = -std=c++11 -g -Wall -O3 -Wno-missing-braces
+CXXFLAGS = -std=c++14 -g -Wall -O3 -Wno-missing-braces
 CXXLIBS = -lglfw3 -lpng
 SRC := main.cc\
- engine/object.cc engine/mesh.cc engine/background.cc engine/event.cc engine/color.cc engine/window.cc engine/shader.cc engine/audio.cc\
+ engine/object.cc engine/mesh.cc engine/background.cc engine/event.cc engine/color.cc engine/window.cc engine/shader.cc engine/audio.cc engine/vec.cc engine/draw.cc engine/quaternion.cc\
  boids/bird.cc
 OBJ := $(SRC:%.cc=build/%.o)
 DEP := $(SRC:%.cc=deps/%.d)
