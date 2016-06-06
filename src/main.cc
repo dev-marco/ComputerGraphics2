@@ -1,33 +1,31 @@
 #include <string>
 #include <iostream>
-#include "engine/shader.h"
-#include "engine/mesh.h"
-#include "engine/window.h"
+#include "engine/engine.h"
 
 #define WINDOW_FPS 60
 
 
 void recursiveTriangle(
-    const std::valarray<double> &a,
-    const std::valarray<double> &b,
-    const std::valarray<double> &c,
-    const double radius,
+    const Engine::Vec<3> &a,
+    const Engine::Vec<3> &b,
+    const Engine::Vec<3> &c,
+    const float_max_t radius,
     const unsigned steps) {
     if (steps <= 0) {
-        glNormal3d(a[0], a[1], a[2]);
-        glVertex3d(a[0] * radius, a[1] * radius, a[2] * radius);
+        Engine::Draw::normal(a);
+        Engine::Draw::vertex(a[0] * radius, a[1] * radius, a[2] * radius);
 
-        glNormal3d(b[0], b[1], b[2]);
-        glVertex3d(b[0] * radius, b[1] * radius, b[2] * radius);
+        Engine::Draw::normal(b);
+        Engine::Draw::vertex(b[0] * radius, b[1] * radius, b[2] * radius);
 
-        glNormal3d(c[0], c[1], c[2]);
-        glVertex3d(c[0] * radius, c[1] * radius, c[2] * radius);
+        Engine::Draw::normal(c);
+        Engine::Draw::vertex(c[0] * radius, c[1] * radius, c[2] * radius);
     } else {
         const unsigned next_step = steps - 1;
-        const std::valarray<double>
-            ab = Engine::Mesh::normalize((a + b) * 0.5),
-            ac = Engine::Mesh::normalize((a + c) * 0.5),
-            bc = Engine::Mesh::normalize((b + c) * 0.5);
+        const Engine::Vec<3>
+            ab = ((a + b) * 0.5).normalized(),
+            ac = ((a + c) * 0.5).normalized(),
+            bc = ((b + c) * 0.5).normalized();
 
         recursiveTriangle( a, ab, ac, radius, next_step);
         recursiveTriangle( b, bc, ab, radius, next_step);
@@ -35,12 +33,13 @@ void recursiveTriangle(
         recursiveTriangle(ab, bc, ac, radius, next_step);
     }
 }
-void drawsphere(unsigned steps, const std::valarray<double> &center = { 0.0, 0.0, 0.0 }, const double radius = 1.0) {
-    constexpr double
+
+void drawsphere(unsigned steps, const Engine::Vec<3> &center = Engine::Vec<3>::zero, const float_max_t radius = 1.0) {
+    constexpr float_max_t
         X = 0.525731112119133606,
         Z = 0.850650808352039932;
 
-    static const std::valarray<double> vdata[12] = {
+    static const Engine::Vec<3> vdata[12] = {
         {  -X, 0.0,   Z }, {   X, 0.0,   Z }, {  -X, 0.0,  -Z }, {   X, 0.0,  -Z },
         { 0.0,   Z,   X }, { 0.0,   Z,  -X }, { 0.0,  -Z,   X }, { 0.0,  -Z,  -X },
         {   Z,   X, 0.0 }, {  -Z,   X, 0.0 }, {   Z,  -X, 0.0 }, {  -Z,  -X, 0.0 }
@@ -53,16 +52,17 @@ void drawsphere(unsigned steps, const std::valarray<double> &center = { 0.0, 0.0
         { 6,  1, 10 }, { 9, 0, 11 }, { 9, 11, 2 }, {  9, 2, 5 }, { 7, 2, 11 }
     };
 
-    glPushMatrix();
-    glTranslated(center[0], center[1], center[2]);
-    glBegin(GL_TRIANGLES);
+    Engine::Draw::push();
+
+    Engine::Draw::translate(center);
+    Engine::Draw::begin(GL_TRIANGLES);
 
     for (const auto &indices : tindices) {
         recursiveTriangle(vdata[indices[0]], vdata[indices[1]], vdata[indices[2]], radius, steps);
     }
 
-    glEnd();
-    glPopMatrix();
+    Engine::Draw::end();
+    Engine::Draw::pop();
 
 }
 
@@ -111,8 +111,8 @@ int main (int argc, const char *argv[]) {
 
         window.addObject(
             new Engine::Object(
-                Engine::Mesh::zero,
-                Engine::Mesh::quaternionIdentity,
+                Engine::Vec<3>::zero,
+                Engine::Quaternion::identity,
                 true,
                 new Engine::Rectangle2D({ -1.0, 0.5, 0.0 }, 4.0, 2.0),
                 nullptr,
@@ -123,9 +123,9 @@ int main (int argc, const char *argv[]) {
         window.addObject(
             new Engine::Object(
                 { 3.0, 3.0, 0.0 },
-                Engine::Mesh::axis2quat({ 1.0, 0.0, 0.0 }, Engine::Mesh::DEG45),
+                Engine::Quaternion::axisAngle({ 1.0, 0.0, 0.0 }, Engine::DEG45),
                 true,
-                new Engine::Polygon2D(Engine::Mesh::zero, 1.0, 5),
+                new Engine::Polygon2D(Engine::Vec<3>::zero, 1.0, 5),
                 nullptr,
                 new Engine::BackgroundColor(Engine::Color::rgba(50, 50, 50, 1.0))
             )
@@ -153,7 +153,7 @@ int main (int argc, const char *argv[]) {
 
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-            gluPerspective(90.0, static_cast<double>(width) / height, 1, 100);
+            gluPerspective(90.0, static_cast<float_max_t>(width) / height, 1, 100);
 
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
