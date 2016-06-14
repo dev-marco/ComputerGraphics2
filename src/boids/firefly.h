@@ -11,113 +11,93 @@ namespace Boids {
 
     class Firefly : public Engine::Object {
 
-        static bool getLeader (void) {
-            static bool leader = false;
-            bool result = leader;
-            leader = true;
-            return result;
-        }
+        Engine::Vec<3> flocking (void) const {
 
-        float_max_t max_speed;
-
-        Engine::Vec<3> separation (void) const {
-
+            Flock *flock = this->getFlock();
             constexpr float_max_t
-                separe = 2.0,
-                separe2 = separe * separe;
-            Engine::Vec<3> result(0);
-            unsigned found = 0;
+                view_distance = 2.0,
+                view_distance2 = view_distance * view_distance,
+                separe_distance = 1.0,
+                separe_distance2 = separe_distance * separe_distance,
+                weight_follow_speed = 3.0,
+                weight_follow_position = 3.0,
+                weight_alignment = 1.0,
+                weight_cohesion = 1.0,
+                weight_separation = 5.0;
+            Engine::Vec<3>
+                follow_speed = Engine::Vec<3>::zero,
+                follow_position = Engine::Vec<3>::zero,
+                alignment = Engine::Vec<3>::zero,
+                cohesion = Engine::Vec<3>::zero,
+                separation = Engine::Vec<3>::zero;
 
-            for (const auto &other : static_cast<Flock *>(this->getParent())->getBoids()) {
-                if (other != this) {
-                    Engine::Vec<3> diff = this->getPosition() - other->getPosition();
-                    float_max_t distance2 = diff.length2();
-                    if (distance2 > 0 && distance2 < separe2) {
-                        diff.normalize();
-                        result += diff / std::sqrt(distance2);
-                        ++found;
+            if (flock != nullptr) {
+                unsigned
+                    found_ali_coe = 0,
+                    found_sep = 0;
+                const auto boids = flock->getBoids();
+
+                Engine::Object *leader = flock->getLeader();
+
+                if (leader && leader != this) {
+                    follow_speed = leader->getSpeed().resized(this->getMaxSpeed());
+                    follow_speed -= this->getSpeed();
+                    follow_position = (leader->getPosition() - this->getPosition()).resized(this->getMaxSpeed());
+                    follow_position -= this->getSpeed();
+                }
+
+                for (const auto &other : boids) {
+                    if (other != this) {
+                        Engine::Vec<3> diff = this->getPosition() - other->getPosition();
+                        float_max_t distance2 = diff.length2();
+                        if (distance2 > 0) {
+                            if (distance2 < view_distance2) {
+                                alignment += other->getSpeed();
+                                cohesion += other->getPosition();
+                                ++found_ali_coe;
+                            }
+                            if (distance2 < separe_distance2) {
+                                separation += diff.normalized() / std::sqrt(distance2);
+                                ++found_sep;
+                            }
+                        }
                     }
+                }
+
+                if (found_ali_coe > 0) {
+
+                    if (alignment.length2() > 0) {
+                        alignment /= found_ali_coe;
+                        alignment.resize(this->getMaxSpeed());
+                        alignment -= this->getSpeed();
+                    }
+
+                    if (cohesion.length2() > 0) {
+                        cohesion /= found_ali_coe;
+                        cohesion -= this->getPosition();
+                        cohesion.resize(this->getMaxSpeed());
+                        cohesion -= this->getSpeed();
+                    }
+                }
+
+                if (found_sep > 0) {
+                    separation /= found_sep;
+                    separation.resize(this->getMaxSpeed());
+                    separation -= this->getSpeed();
                 }
             }
 
-            if (found > 0) {
-                result /= found;
-                result.resize(this->getMaxSpeed());
-                result -= this->getSpeed();
-                result.clamp(0.0, this->getMaxForce());
-            }
-
-            // std::cout << "sep " << result << std::endl;
-
-            return result;
-        }
-
-        Engine::Vec<3> alignment (void) const {
-
-            constexpr float_max_t
-                min_distance = 10.0,
-                min_distance2 = min_distance * min_distance;
-            Engine::Vec<3> result(0);
-            unsigned found = 0;
-
-            for (const auto &other : static_cast<Flock *>(this->getParent())->getBoids()) {
-                if (other != this) {
-                    float_max_t distance2 = this->getPosition().distance2(other->getPosition());
-                    if (distance2 > 0 && distance2 < min_distance2) {
-                        result += other->getSpeed();
-                        ++found;
-                    }
-                }
-            }
-
-            if (found > 0 && result.length2() > 0) {
-                result /= found;
-                result.resize(this->getMaxSpeed());
-                result -= this->getSpeed();
-                result.clamp(0.0, this->getMaxForce());
-            }
-
-            // std::cout << "ali " << result << std::endl;
-
-            return result;
-        }
-
-        Engine::Vec<3> cohesion (void) const {
-
-            constexpr float_max_t
-                min_distance = 10.0,
-                min_distance2 = min_distance * min_distance;
-            Engine::Vec<3> result(0);
-            unsigned found = 0;
-
-            for (const auto &other : static_cast<Flock *>(this->getParent())->getBoids()) {
-                if (other != this) {
-                    float_max_t distance2 = this->getPosition().distance2(other->getPosition());
-                    if (distance2 > 0 && distance2 < min_distance2) {
-                        result += other->getPosition();
-                        ++found;
-                    }
-                }
-            }
-
-            if (found > 0 && result.length2() > 0) {
-                result /= found;
-                result -= this->getPosition();
-                result.resize(this->getMaxSpeed());
-                result -= this->getSpeed();
-                result.clamp(0.0, this->getMaxForce());
-            }
-
-            // std::cout << "coh " << result << std::endl;
-
-            return result;
+            return
+                follow_speed * weight_follow_speed +
+                follow_position * weight_follow_position +
+                alignment * weight_alignment +
+                cohesion * weight_cohesion +
+                separation * weight_separation;
         }
 
         Engine::Vec<3> obstacles (void) {
 
-            constexpr float_max_t
-                separe = 2.0,
-                separe2 = separe * separe;
+            constexpr float_max_t separe = 2.0;
 
             Engine::Vec<3>
                 result(0),
@@ -133,7 +113,7 @@ namespace Boids {
                 ++found;
             }
 
-            for (const auto &other : static_cast<Flock *>(this->getParent())->getObstacles()) {
+            for (const auto &other : this->getFlock()->getObstacles()) {
 
                 Engine::Mesh *mesh = other->getMesh();
 
@@ -144,29 +124,24 @@ namespace Boids {
                     const Engine::Vec<3>
                         tower_start = cone->getStart(),
                         tower_end = cone->getEnd();
-                    distance = Engine::Mesh::distancePointCylinder(this->getPosition(), tower_start, tower_end, std::max(cone->getBaseRadius(), cone->getTopRadius()));
+                    distance = Engine::Mesh::distancePointRay(this->getPosition(), tower_start, tower_end, near_point);
 
                     if (distance < separe) {
 
-                        std::cout << mesh->getType() << std::endl;
-                        Engine::Mesh::distancePointRay(this->getPosition(), tower_start, tower_end, near_point);
-                        Engine::Vec<3> diff = this->getPosition() - near_point;
-                        diff.normalize();
-                        result += diff / distance;
+                        Engine::Vec<3> diff = this->getSpeed() - near_point;
+                        result += diff;
                         ++found;
                     }
                 } else if (mesh->getType() == "sphere3d") {
 
                     Engine::Sphere3D *sphere = static_cast<Engine::Sphere3D *>(mesh);
-                    distance = Engine::Mesh::distancePointSphere(this->getPosition(), other->getPosition(), sphere->getRadius());
+                    distance = this->getPosition().distance(sphere->getPosition());
 
                     if (distance < separe) {
-                        Engine::Vec<3> diff = this->getPosition() - other->getPosition();
-                        diff.normalize();
-                        result += diff / distance;
+                        Engine::Vec<3> diff = this->getSpeed() - sphere->getPosition();
+                        result += diff;
                         ++found;
                     }
-
                 }
 
             }
@@ -179,10 +154,9 @@ namespace Boids {
             }
 
             return result;
-
         }
 
-        bool leader, wing_down = true;
+        bool wing_down = true;
         std::list<Engine::Quaternion> samples;
         float_max_t wing_period, wing_time = 0.0;
 
@@ -190,16 +164,17 @@ namespace Boids {
             right_wing = Engine::Mesh({ 0.06,  0.0, 0.05 }),
             left_wing = Engine::Mesh({ 0.06,  0.0, 0.05 });
 
-        static Engine::Sphere3D light, head, right_eye_sphere, left_eye_sphere;
+        Engine::Sphere3D light = Engine::Sphere3D(Engine::Vec<3>::origin, 0.07, nullptr);
+
+        Flock *flock = nullptr;
+
+        static Engine::Sphere3D head, right_eye_sphere, left_eye_sphere;
         static Engine::Cylinder body;
         static Engine::Ellipse2D right_wing_ellipse, left_wing_ellipse;
 
-        static Engine::BackgroundColor green, black, gray;
+        static Engine::BackgroundColor green, blue, black, gray;
 
-        static std::default_random_engine random_generator;
-
-// TODO wing add force
-// TODO wing period
+        static std::mt19937 random_generator;
 
     public:
         Firefly (const Engine::Vec<3> &_position = Engine::Vec<3>::zero, const Engine::Quaternion &_orientation = Engine::Quaternion::identity) :
@@ -212,28 +187,13 @@ namespace Boids {
                 Engine::Vec<3>::zero,
                 Engine::Vec<3>::zero,
                 1.0,
-                0.0, 1.0
-            ), leader(getLeader()) {
-
+                0.0, 3.0
+            ) {
                 static std::uniform_real_distribution<float_max_t> _wing_period(0.2, 1.0);
-
-                static int state = 0;
-                Engine::Vec<3> position = Engine::Vec<3>::random(2.0, 5.0);
-                if (state == 0) {
-                    position[0] = -position[0];
-                } else if (state == 1) {
-                    position[1] = -position[1];
-                } else if (state == 2) {
-                    position[0] = -position[0];
-                    position[1] = -position[1];
-                } else {
-                    state = -1;
-                }
-                ++state;
 
                 this->wing_period = _wing_period(random_generator);
 
-                this->drawing.addChild(&Firefly::light);
+                this->drawing.addChild(&this->light);
                 this->drawing.addChild(&Firefly::body);
                 this->drawing.addChild(&Firefly::head);
 
@@ -247,10 +207,17 @@ namespace Boids {
                 this->drawing.addChild(&this->left_wing);
 
                 this->setMesh(&this->drawing);
-                this->setPosition(position);
                 this->samples.clear();
                 this->samples.push_back(Engine::Quaternion::difference(this->getSpeed(), Engine::Vec<3>::axisX));
             };
+
+        inline void onSetParent (Engine::Object *parent) override {
+            this->flock = dynamic_cast<Flock *>(parent);
+        }
+
+        inline void onRemoveParent (Engine::Object *parent) override {
+            this->flock = nullptr;
+        }
 
         inline void beforeUpdate (float_max_t now, float_max_t delta_time, unsigned tick) override {
 
@@ -258,20 +225,29 @@ namespace Boids {
                 min_wing = -Engine::DEG15,
                 max_wing = Engine::DEG45,
                 delta_wing = max_wing - min_wing;
+            const Flock *flock = this->getFlock();
+            const Engine::Object *leader = flock->getLeader();
 
             float_max_t wing_angle;
 
-            this->setAcceleration(this->separation() * 2.0 + this->alignment() + this->cohesion() + this->obstacles() * 3.0);
-
-            if (this->leader) {
-                this->applyForce({ 10.0, 0.0, 20.0 });
+            if (flock) {
+                if (leader == this) {
+                    this->light.setBackground(&Firefly::blue);
+                } else {
+                    this->setAcceleration(this->flocking() + this->obstacles() * 20.0);
+                    this->light.setBackground(&Firefly::green);
+                }
             }
 
             if (this->wing_down) {
-                this->applyForce(this->getOrientation().rotated({ 0.0, 0.0,  3.0 }));
+                if (leader != this) {
+                    this->applyForce(this->getOrientation().rotated({ 0.0, 0.0,  3.0 }));
+                }
                 wing_angle = Engine::Easing::Back::Out(this->wing_time, max_wing, -delta_wing, this->wing_period);
             } else {
-                this->applyForce(this->getOrientation().rotated({ 0.0, 0.0, -3.0 }));
+                if (leader != this) {
+                    this->applyForce(this->getOrientation().rotated({ 0.0, 0.0, -3.0 }));
+                }
                 wing_angle = Engine::Easing::Back::Out(this->wing_time, min_wing, delta_wing, this->wing_period);
             }
 
@@ -284,8 +260,6 @@ namespace Boids {
 
             this->right_wing.setOrientation(Engine::Quaternion::axisAngle(Engine::Vec<3>::axisX, wing_angle));
             this->left_wing.setOrientation(Engine::Quaternion::axisAngle(Engine::Vec<3>::axisX, -wing_angle));
-
-            // std::cout << this->getSpeed() << std::endl << std::endl;
         }
 
         inline void afterUpdate (float_max_t now, float_max_t delta_time, unsigned tick) override {
@@ -295,6 +269,10 @@ namespace Boids {
                 this->samples.pop_front();
             }
             this->setOrientation(this->getOrientation().lerped(Engine::Quaternion::average(this->samples), 0.1));
+        }
+
+        inline Flock *getFlock (void) const {
+            return this->flock;
         }
 
         inline std::string getType () const override { return "firefly"; }
