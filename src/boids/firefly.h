@@ -11,7 +11,7 @@ namespace Boids {
 
     class Firefly : public Engine::Object {
 
-        Engine::Vec<3> flocking (void) const {
+        Spatial::Vec<3> flocking (void) const {
 
             Flock *flock = this->getFlock();
             constexpr float_max_t
@@ -24,12 +24,12 @@ namespace Boids {
                 weight_alignment = 1.0,
                 weight_cohesion = 1.0,
                 weight_separation = 5.0;
-            Engine::Vec<3>
-                follow_speed = Engine::Vec<3>::zero,
-                follow_position = Engine::Vec<3>::zero,
-                alignment = Engine::Vec<3>::zero,
-                cohesion = Engine::Vec<3>::zero,
-                separation = Engine::Vec<3>::zero;
+            Spatial::Vec<3>
+                follow_speed = Spatial::Vec<3>::zero,
+                follow_position = Spatial::Vec<3>::zero,
+                alignment = Spatial::Vec<3>::zero,
+                cohesion = Spatial::Vec<3>::zero,
+                separation = Spatial::Vec<3>::zero;
 
             if (flock != nullptr) {
                 unsigned
@@ -48,7 +48,7 @@ namespace Boids {
 
                 for (const auto &other : boids) {
                     if (other != this) {
-                        Engine::Vec<3> diff = this->getPosition() - other->getPosition();
+                        Spatial::Vec<3> diff = this->getPosition() - other->getPosition();
                         float_max_t distance2 = diff.length2();
                         if (distance2 > 0) {
                             if (distance2 < view_distance2) {
@@ -95,19 +95,19 @@ namespace Boids {
                 separation * weight_separation;
         }
 
-        Engine::Vec<3> obstacles (void) {
+        Spatial::Vec<3> obstacles (void) {
 
             constexpr float_max_t separe = 2.0;
 
-            Engine::Vec<3>
+            Spatial::Vec<3>
                 result(0),
                 near_point;
             unsigned found = 0;
 
-            float_max_t distance = Engine::Mesh::distancePointPlane(this->getPosition(), Engine::Vec<3>::axisZ, Engine::Vec<3>::origin, near_point);
+            float_max_t distance = Engine::Mesh::distancePointPlane(this->getPosition(), Spatial::Vec<3>::axisZ, Spatial::Vec<3>::origin, near_point);
 
             if (distance < separe) {
-                Engine::Vec<3> diff = this->getPosition() - near_point;
+                Spatial::Vec<3> diff = this->getPosition() - near_point;
                 diff.normalize();
                 result += diff / distance;
                 ++found;
@@ -121,14 +121,14 @@ namespace Boids {
 
                     Engine::Cone *cone = static_cast<Engine::Cone *>(mesh);
 
-                    const Engine::Vec<3>
+                    const Spatial::Vec<3>
                         tower_start = cone->getStart(),
                         tower_end = cone->getEnd();
                     distance = Engine::Mesh::distancePointRay(this->getPosition(), tower_start, tower_end, near_point);
 
                     if (distance < separe) {
 
-                        Engine::Vec<3> diff = this->getSpeed() - near_point;
+                        Spatial::Vec<3> diff = this->getSpeed() - near_point;
                         result += diff;
                         ++found;
                     }
@@ -138,7 +138,7 @@ namespace Boids {
                     distance = this->getPosition().distance(sphere->getPosition());
 
                     if (distance < separe) {
-                        Engine::Vec<3> diff = this->getSpeed() - sphere->getPosition();
+                        Spatial::Vec<3> diff = this->getSpeed() - sphere->getPosition();
                         result += diff;
                         ++found;
                     }
@@ -157,14 +157,14 @@ namespace Boids {
         }
 
         bool wing_down = true;
-        std::list<Engine::Quaternion> samples;
+        std::list<Spatial::Quaternion> samples;
         float_max_t wing_period, wing_time = 0.0;
 
         Engine::Mesh drawing,
             right_wing = Engine::Mesh({ 0.06,  0.0, 0.05 }),
             left_wing = Engine::Mesh({ 0.06,  0.0, 0.05 });
 
-        Engine::Sphere3D light = Engine::Sphere3D(Engine::Vec<3>::origin, 0.07, nullptr);
+        Engine::Sphere3D light = Engine::Sphere3D(Spatial::Vec<3>::origin, 0.07, nullptr);
 
         Flock *flock = nullptr;
 
@@ -177,15 +177,15 @@ namespace Boids {
         static std::mt19937 random_generator;
 
     public:
-        Firefly (const Engine::Vec<3> &_position = Engine::Vec<3>::zero, const Engine::Quaternion &_orientation = Engine::Quaternion::identity) :
+        Firefly (const Spatial::Vec<3> &_position = Spatial::Vec<3>::zero, const Spatial::Quaternion &_orientation = Spatial::Quaternion::identity) :
             Engine::Object(
                 _position,
                 _orientation,
                 true,
                 nullptr,
                 nullptr,
-                Engine::Vec<3>::zero,
-                Engine::Vec<3>::zero,
+                Spatial::Vec<3>::zero,
+                Spatial::Vec<3>::zero,
                 1.0,
                 0.0, 3.0
             ) {
@@ -208,7 +208,7 @@ namespace Boids {
 
                 this->setMesh(&this->drawing);
                 this->samples.clear();
-                this->samples.push_back(Engine::Quaternion::difference(this->getSpeed(), Engine::Vec<3>::axisX));
+                this->samples.push_back(Spatial::Quaternion::difference(this->getSpeed(), Spatial::Vec<3>::axisX));
             };
 
         inline void onSetParent (Engine::Object *parent) override {
@@ -222,8 +222,8 @@ namespace Boids {
         inline void beforeUpdate (float_max_t now, float_max_t delta_time, unsigned tick) override {
 
             constexpr float_max_t
-                min_wing = -Engine::DEG15,
-                max_wing = Engine::DEG45,
+                min_wing = -Spatial::DEG15,
+                max_wing = Spatial::DEG45,
                 delta_wing = max_wing - min_wing;
             const Flock *flock = this->getFlock();
             const Engine::Object *leader = flock->getLeader();
@@ -258,17 +258,17 @@ namespace Boids {
                 this->wing_time += delta_time;
             }
 
-            this->right_wing.setOrientation(Engine::Quaternion::axisAngle(Engine::Vec<3>::axisX, wing_angle));
-            this->left_wing.setOrientation(Engine::Quaternion::axisAngle(Engine::Vec<3>::axisX, -wing_angle));
+            this->right_wing.setOrientation(Spatial::Quaternion::axisAngle(Spatial::Vec<3>::axisX, wing_angle));
+            this->left_wing.setOrientation(Spatial::Quaternion::axisAngle(Spatial::Vec<3>::axisX, -wing_angle));
         }
 
         inline void afterUpdate (float_max_t now, float_max_t delta_time, unsigned tick) override {
             static constexpr unsigned max_sample_size = 50;
-            this->samples.push_back(Engine::Quaternion::difference(Engine::Vec<3>::axisX, this->getSpeed()));
+            this->samples.push_back(Spatial::Quaternion::difference(Spatial::Vec<3>::axisX, this->getSpeed()));
             if (this->samples.size() > max_sample_size) {
                 this->samples.pop_front();
             }
-            this->setOrientation(this->getOrientation().lerped(Engine::Quaternion::average(this->samples), 0.1));
+            this->setOrientation(this->getOrientation().lerped(Spatial::Quaternion::average(this->samples), 0.1));
         }
 
         inline Flock *getFlock (void) const {

@@ -3,11 +3,11 @@
 
 namespace Boids {
 
-    Flock::Flock (Engine::Window &_window, unsigned number, Obstacles &_obstacles, const Engine::Vec<3> &_position) :
-        Engine::Object(_position, Engine::Quaternion::identity), window(_window), obstacles(_obstacles) {
+    Flock::Flock (Engine::Window &_window, unsigned number, Obstacles &_obstacles, const Spatial::Vec<3> &_position) :
+        Engine::Object(_position, Spatial::Quaternion::identity), window(_window), obstacles(_obstacles) {
         for (unsigned i = 0; i < number; ++i) {
             static std::uniform_real_distribution<float_max_t>
-                random_angle(-Engine::DEG180, Engine::DEG180),
+                random_angle(-Spatial::DEG180, Spatial::DEG180),
                 random_radius(1.0, 5.0);
 
             const float_max_t
@@ -31,7 +31,7 @@ namespace Boids {
                 } else if (GLFW_KEY_V == key) {
                     this->view_mode = static_cast<Flock::ViewMode>((static_cast<int>(view_mode) + 1) % 3);
                 } else if (GLFW_KEY_KP_ADD == key || GLFW_KEY_EQUAL == key) {
-                    this->addChild(new Firefly(this->averagePosition() + Engine::Vec<3>::random(-1.0, 1.0)));
+                    this->addChild(new Firefly(this->averagePosition() + Spatial::Vec<3>::random(-1.0, 1.0)));
                 } else if (GLFW_KEY_MINUS == key || GLFW_KEY_KP_SUBTRACT == key) {
                     Engine::Object *last = this->getChildren().back();
                     this->removeChild(last);

@@ -10,10 +10,10 @@
 namespace Boids {
 
     constexpr float_max_t
-        leader_max_angle_y =  Engine::DEG180,
-        leader_min_angle_y = -Engine::DEG180,
-        leader_max_angle_z =  Engine::DEG45,
-        leader_min_angle_z = -Engine::DEG45,
+        leader_max_angle_y =  Spatial::DEG180,
+        leader_min_angle_y = -Spatial::DEG180,
+        leader_max_angle_z =  Spatial::DEG45,
+        leader_min_angle_z = -Spatial::DEG45,
         leader_min_speed = 0.5,
         leader_max_speed = 2.0,
         leader_start_speed = (leader_min_speed + leader_min_speed) / 2.0;
@@ -35,14 +35,14 @@ namespace Boids {
         Engine::Object *leader = nullptr;
         std::set<Engine::Object *> fireflies;
         bool values_set = false, smooth_values_set = false;
-        Engine::Vec<3> avg_position, avg_speed, avg_acceleration, smooth_avg_position, smooth_avg_speed;
-        std::list<Engine::Vec<3>> position_log, speed_log;
+        Spatial::Vec<3> avg_position, avg_speed, avg_acceleration, smooth_avg_position, smooth_avg_speed;
+        std::list<Spatial::Vec<3>> position_log, speed_log;
         float_max_t min_x, min_y, min_z, max_x, max_y, max_z, leader_angle_z = 0.0, leader_angle_y = 0.0, leader_speed = leader_start_speed;
         std::mt19937 random_generator = std::mt19937(std::chrono::system_clock::now().time_since_epoch().count());
 
         void setAverages (bool force = false) {
             if (!this->values_set || force) {
-                this->avg_position = this->avg_speed = this->avg_acceleration = Engine::Vec<3>::zero;
+                this->avg_position = this->avg_speed = this->avg_acceleration = Spatial::Vec<3>::zero;
                 this->min_x = this->min_y = this->min_z =  std::numeric_limits<float_max_t>::infinity();
                 this->max_x = this->max_y = this->max_z = -std::numeric_limits<float_max_t>::infinity();
 
@@ -52,7 +52,7 @@ namespace Boids {
 
                     for (const auto &firefly : this->fireflies) {
                         if (firefly != this->getLeader()) {
-                            static Engine::Vec<3> position;
+                            static Spatial::Vec<3> position;
                             position = firefly->getPosition();
                             this->min_x = std::min(this->min_x, position[0]);
                             this->min_y = std::min(this->min_y, position[1]);
@@ -87,15 +87,15 @@ namespace Boids {
         void setSmoothAverages (bool force = false) {
             this->setAverages();
             if (!this->smooth_values_set || force) {
-                this->smooth_avg_position = Engine::Vec<3>::average(this->position_log);
-                this->smooth_avg_speed = Engine::Vec<3>::average(this->speed_log);
+                this->smooth_avg_position = Spatial::Vec<3>::average(this->position_log);
+                this->smooth_avg_speed = Spatial::Vec<3>::average(this->speed_log);
                 this->smooth_values_set = true;
             }
         }
 
     public:
 
-        Flock (Engine::Window &_window, unsigned number, Obstacles &_obstacles, const Engine::Vec<3> &_position = Engine::Vec<3>::zero);
+        Flock (Engine::Window &_window, unsigned number, Obstacles &_obstacles, const Spatial::Vec<3> &_position = Spatial::Vec<3>::zero);
 
         const std::set<Engine::Object *> &getBoids (void) const { return this->fireflies; }
         const std::list<Engine::Object *> &getObstacles (void) const { return this->obstacles.getChildren(); }
@@ -104,7 +104,7 @@ namespace Boids {
             Engine::Object *leader = this->getLeader();
             this->values_set = false;
             if (leader) {
-                leader->setSpeed(Engine::Quaternion::eulerZYX(this->leader_angle_z, this->leader_angle_y, 0.0).rotated(Engine::Vec<3>::axisX) * this->leader_speed);
+                leader->setSpeed(Spatial::Quaternion::eulerZYX(this->leader_angle_z, this->leader_angle_y, 0.0).rotated(Spatial::Vec<3>::axisX) * this->leader_speed);
             }
         }
 
@@ -112,7 +112,7 @@ namespace Boids {
             if (child->getType() == "firefly") {
                 if (this->leader == nullptr) {
                     this->leader = child;
-                    child->setSpeed(Engine::Vec<3>({ 1.0, 1.0, 1.0 }).normalized());
+                    child->setSpeed(Spatial::Vec<3>({ 1.0, 1.0, 1.0 }).normalized());
                 }
                 this->fireflies.insert(child);
                 this->values_set = false;
@@ -126,16 +126,16 @@ namespace Boids {
             }
         }
 
-        Engine::Vec<3> eyePos (void) {
+        Spatial::Vec<3> eyePos (void) {
 
             if (this->view_mode == ViewMode::VIEW_TOWER) {
                 return { 0.0, 0.0, this->obstacles.getTowerHeight() };
             } else {
 
-                const Engine::Vec<3>
+                const Spatial::Vec<3>
                     &flock_center = this->smoothAveragePosition(),
                     &flock_speed = this->smoothAverageSpeed();
-                Engine::Vec<3> eye_pos;
+                Spatial::Vec<3> eye_pos;
 
                 if (this->view_mode == ViewMode::VIEW_BACK) {
                     Engine::Mesh::intersectionRayBox(
@@ -148,7 +148,7 @@ namespace Boids {
                 } else {
                     Engine::Mesh::intersectionRayBox(
                         flock_center,
-                        flock_center + flock_speed.cross(Engine::Vec<3>::axisZ),
+                        flock_center + flock_speed.cross(Spatial::Vec<3>::axisZ),
                         { this->minX(), this->minY(), this->minZ() },
                         { this->maxX(), this->maxY(), this->maxZ() },
                         eye_pos
@@ -161,27 +161,27 @@ namespace Boids {
 
         Engine::Object *getLeader (void) const { return this->leader; }
 
-        Engine::Vec<3> averagePosition (void) {
+        Spatial::Vec<3> averagePosition (void) {
             this->setAverages();
             return this->avg_position;
         }
 
-        Engine::Vec<3> smoothAveragePosition (void) {
+        Spatial::Vec<3> smoothAveragePosition (void) {
             this->setSmoothAverages();
             return this->smooth_avg_position;
         }
 
-        Engine::Vec<3> averageSpeed (void) {
+        Spatial::Vec<3> averageSpeed (void) {
             this->setSmoothAverages();
             return this->smooth_avg_speed;
         }
 
-        Engine::Vec<3> smoothAverageSpeed (void) {
+        Spatial::Vec<3> smoothAverageSpeed (void) {
             this->setAverages();
-            return Engine::Vec<3>::average(this->speed_log);
+            return Spatial::Vec<3>::average(this->speed_log);
         }
 
-        Engine::Vec<3> averageAcceleration (void) {
+        Spatial::Vec<3> averageAcceleration (void) {
             this->setAverages();
             return this->avg_acceleration;
         }

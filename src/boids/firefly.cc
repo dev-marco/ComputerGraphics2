@@ -6,7 +6,7 @@ namespace Boids {
         Firefly::head = Engine::Sphere3D({ 0.2, 0.0, 0.0 }, 0.1, &Firefly::black),
         Firefly::right_eye_sphere = Engine::Sphere3D({ 0.265, 0.03, 0.045 }, 0.02, &Firefly::green),
         Firefly::left_eye_sphere = Engine::Sphere3D({ 0.265, -0.03, 0.045 }, 0.02, &Firefly::green);
-    Engine::Cylinder Firefly::body = Engine::Cylinder(Engine::Vec<3>::origin, { 0.2, 0.0, 0.0 }, 0.05, &black);
+    Engine::Cylinder Firefly::body = Engine::Cylinder(Spatial::Vec<3>::origin, { 0.2, 0.0, 0.0 }, 0.05, &black);
     Engine::Ellipse2D
         Firefly::right_wing_ellipse = Engine::Ellipse2D({ 0.0,  0.1, 0.0 }, 0.1, 0.8, 2.0, &Firefly::gray),
         Firefly::left_wing_ellipse = Engine::Ellipse2D({ 0.0, -0.1, 0.0 }, 0.1, 0.8, 2.0, &Firefly::gray);

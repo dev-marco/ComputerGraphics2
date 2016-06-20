@@ -82,7 +82,7 @@ namespace Boids {
                                 light_diffuse[4] = { 0.2, 0.2, 0.2, 1.0 },
                                 light_specular[4] = { 0.2, 0.2, 0.2, 1.0 };
 
-                            Engine::Vec<4, float> light_position = { 0.0, 0.0, 5.0, 1.0 };
+                            Spatial::Vec<4, float> light_position = { 0.0, 0.0, 5.0, 1.0 };
 
                             glLightModelfv(GL_LIGHT_MODEL_AMBIENT, light_model_ambient);
 
