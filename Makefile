@@ -5,7 +5,7 @@ CXXFLAGS = -std=c++14 -g -Wall -Wno-missing-braces -O3
 CXXLIBS = -lglfw3 -lpng
 SRC := main.cc\
  engine/object.cc engine/mesh.cc engine/background.cc engine/event.cc engine/color.cc engine/window.cc engine/shader.cc engine/audio.cc engine/draw.cc\
- engine/spatial/vec.cc engine/spatial/quaternion.cc\
+ engine/spatial/vec.cc engine/spatial/quaternion.cc engine/spatial/intersection.cc\
  boids/firefly.cc boids/flock.cc boids/obstacles.cc boids/boids.cc
 OBJ := $(SRC:%.cc=build/%.o)
 DEP := $(SRC:%.cc=deps/%.d)
